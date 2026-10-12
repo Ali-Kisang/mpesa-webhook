@@ -1,0 +1,35 @@
+# Bare-metal / VM install (no Docker):
+#
+#   make && sudo make install
+#   sudo useradd --system --no-create-home mpesa
+#   sudo cp .env.example /etc/mpesa-webhook.env && sudo chmod 600 /etc/mpesa-webhook.env
+#   sudo $EDITOR /etc/mpesa-webhook.env
+#   sudo cp deploy/mpesa-webhook.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now mpesa-webhook
+#   journalctl -u mpesa-webhook -f
+#
+# Put nginx or Caddy in front for HTTPS; this unit listens on localhost only.
+[Unit]
+Description=M-Pesa webhook handler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=mpesa
+Group=mpesa
+EnvironmentFile=/etc/mpesa-webhook.env
+Environment=BIND_ADDR=127.0.0.1 DB_PATH=/var/lib/mpesa-webhook/mpesa.db
+ExecStart=/usr/local/bin/mpesa_webhook
+Restart=always
+RestartSec=2
+StateDirectory=mpesa-webhook
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+
+[Install]
+WantedBy=multi-user.target

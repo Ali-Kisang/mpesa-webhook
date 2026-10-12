@@ -1,0 +1,22 @@
+# Caddy obtains and renews HTTPS certificates automatically for {$DOMAIN}.
+{$DOMAIN} {
+	# Only Safaricom's callback is reachable from the internet.
+	# /order, /order/<id>, /orders and /report stay internal (reach them at http://app:8080
+	# from inside the Docker network, or through an SSH tunnel).
+	@callback path /mpesa/callback/*
+	handle @callback {
+		reverse_proxy app:8080
+	}
+	handle {
+		respond "Not found" 404
+	}
+
+	# Optional extra protection: only accept callbacks from Safaricom's IP addresses.
+	# Get the current list from Safaricom's Daraja documentation, then replace the matcher
+	# above with:
+	#
+	#   @callback {
+	#       path /mpesa/callback/*
+	#       remote_ip <ip-or-cidr> <ip-or-cidr> ...
+	#   }
+}

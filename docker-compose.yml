@@ -1,0 +1,41 @@
+# Production-style setup: the service plus Caddy, which provides HTTPS automatically.
+#
+#   1. cp .env.example .env   and fill it in (including DOMAIN)
+#   2. point your domain's DNS A record at this server
+#   3. docker compose up -d --build
+#
+# Only /mpesa/callback/* is exposed to the internet (see deploy/Caddyfile).
+# Your own app talks to the admin endpoints over the internal Docker network at
+# http://app:8080  (put your app in this compose file, or on the same network).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/mpesa.db
+      BIND_ADDR: 0.0.0.0
+    volumes:
+      - mpesa-data:/data
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  mpesa-data:
+  caddy-data:
+  caddy-config:
